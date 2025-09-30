@@ -63,6 +63,7 @@ jobs:
           context: ./backend-report/
           push: true
           tags: ${{ secrets.DOCKER_USER }}/sausage-backend-report:latest
+
   # Упаковываем helm-чарт и пушим его в Nexus
   add_helm_chart_to_nexus:
     name: Add Helm Chart To Nexus
@@ -86,6 +87,32 @@ jobs:
           helm repo add nexus ${{ env.NEXUS_HELM_REPO }} --username ${{ env.NEXUS_HELM_REPO_USER }} --password ${{ env.NEXUS_HELM_REPO_PASSWORD }}
           helm repo update
 
+      - name: Set chart version with commit hash
+        id: set_version
+        run: |
+          # Use commit hash as part of version to ensure uniqueness
+          COMMIT_HASH=$(echo ${{ github.sha }} | cut -c1-8)
+          VERSION="0.1.0-$COMMIT_HASH"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Generated version: $VERSION"
+
+      - name: Update chart versions
+        run: |
+          # Update main chart version
+          sed -i "s/version: .*/version: ${{ env.VERSION }}/g" sausage-store-chart/Chart.yaml
+          
+          # Update dependency versions
+          sed -i "s/    version: .*/    version: ${{ env.VERSION }}/g" sausage-store-chart/Chart.yaml
+
+      - name: Update subchart versions
+        run: |
+          # Update versions in all subcharts
+          for chart in backend backend-report frontend infra; do
+            if [ -f "sausage-store-chart/charts/$chart/Chart.yaml" ]; then
+              sed -i "s/version: .*/version: ${{ env.VERSION }}/g" sausage-store-chart/charts/$chart/Chart.yaml
+            fi
+          done
+
       - name: Helm package chart
         run: |
           helm dependency update sausage-store-chart
@@ -94,10 +121,7 @@ jobs:
       - name: Helm push chart to Nexus
         run: |
           helm cm-push sausage-store-*.tgz ${{ env.NEXUS_HELM_REPO }} \
-            --username="${{ env.NEXUS_HELM_REPO_USER }}" \
-            --password="${{ env.NEXUS_HELM_REPO_PASSWORD }}" \
-            --context-path="/repository/websevee-sem2-final-project" \
-            --force
+            --context-path="/repository/websevee-sem2-final-project"
 
   # Деплоим приложения в кластер Kubernetes с помощью helm-чарт
   deploy_helm_chart_to_kubernetes:
@@ -114,9 +138,6 @@ jobs:
         with:
           version: v3.10.0
 
-      - name: Install helm-cm-push plugin
-        run: helm plugin install https://github.com/chartmuseum/helm-push
-
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
         with:
@@ -124,7 +145,7 @@ jobs:
 
       - name: Add Nexus Helm repository
         run: |
-          helm repo add nexus $NEXUS_HELM_REPO --username $NEXUS_HELM_REPO_USER --password $NEXUS_HELM_REPO_PASSWORD
+          helm repo add nexus ${{ env.NEXUS_HELM_REPO }}
           helm repo update
 
       - name: Configure Kubernetes context
@@ -133,5 +154,4 @@ jobs:
           echo "$KUBE_CONFIG" > ~/.kube/config
 
       - name: Deploy Helm chart
-        run: |
-          helm upgrade --install sausage-store nexus/sausage-store --namespace sausage-store --create-namespace
+        run: helm upgrade --install sausage-store nexus/sausage-store --namespace sausage-store --create-namespace
