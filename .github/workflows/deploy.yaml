@@ -116,7 +116,7 @@ jobs:
       - name: Helm package chart
         run: |
           helm dependency update sausage-store-chart
-          helm package sausage-store-chart
+          helm package --version ${{ env.VERSION }} sausage-store-chart
 
       - name: Helm push chart to Nexus
         run: |
@@ -156,7 +156,16 @@ jobs:
           echo "${KUBE_CONFIG}" | base64 --decode > ~/.kube/config
           chmod 600 ~/.kube/config
 
+      - name: Set chart version with commit hash
+        id: set_version
+        run: |
+          COMMIT_HASH=$(echo ${{ github.sha }} | cut -c1-8)
+          VERSION="0.1.0-$COMMIT_HASH"
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "Using version: $VERSION"
+
       - name: Deploy Helm chart
         run: |
           helm upgrade --install sausage-store nexus/sausage-store \
+            --version ${{ env.VERSION }} \
             --namespace ${{ env.SAUSAGE_STORE_NAMESPACE }}
