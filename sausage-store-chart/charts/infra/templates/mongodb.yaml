@@ -72,6 +72,13 @@ spec:
         envFrom:
           - configMapRef:
               name: mongodb-conf
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "10m"
+          limits:
+            memory: "256Mi"
+            cpu: "100m"
         command:
         - /bin/sh
         - -c
