@@ -93,9 +93,10 @@ jobs:
 
       - name: Helm push chart to Nexus
         run: |
-          helm cm-push sausage-store-*.tgz nexus \
+          helm cm-push sausage-store-*.tgz $NEXUS_HELM_REPO \
             --username="$NEXUS_HELM_REPO_USER" \
-            --password="$NEXUS_HELM_REPO_PASSWORD"
+            --password="$NEXUS_HELM_REPO_PASSWORD" \
+            --context-path="/repository/websevee-sem2-final-project"
 
   # Деплоим приложения в кластер Kubernetes с помощью helm-чарт
   deploy_helm_chart_to_kubernetes:
