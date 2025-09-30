@@ -92,7 +92,7 @@ backend-report:
 ### Опишите HPA для backend-report
   env:
     PORT: 8080
-    DB: mongodb://reports:reportspassword@mongodb:27017/sausage-store?authSource=sausage-store
+    DB: mongodb://reports:reportspassword@mongodb:27017/sausage-store
     MONGO_REPORTS_DATABASE: sausage-store
     MONGO_REPORTS_USERNAME: reports
     MONGO_REPORTS_PASSWORD: reportspassword
