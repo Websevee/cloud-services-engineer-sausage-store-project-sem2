@@ -90,8 +90,8 @@ backend-report:
 ### DB положите в Secret, PORT в ConfigMap
 ### Опишите HPA для backend-report
   env:
-    port: 8080
-    db: "mongodb://root:rootpassword@mongodb:27017"
+    PORT: 8080
+    DB: mongodb://reports:reportpassword@mongodb:27017/sausage-store
   service:
     port: 8080
   revisionHistoryLimit: 15
@@ -112,10 +112,8 @@ backend-report:
     httpGet:
       path: /health
       port: 8080
-    initialDelaySeconds: 60
-    periodSeconds: 30
-    timeoutSeconds: 10
-    failureThreshold: 3
+    initialDelaySeconds: 30
+    periodSeconds: 10
   hpa:
     minReplicas: 1
     maxReplicas: 5
@@ -138,4 +136,7 @@ infra:
     env:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: rootpassword
+      MONGO_REPORTS_DATABASE: sausage-store
+      MONGO_REPORTS_USERNAME: reports
+      MONGO_REPORTS_PASSWORD: reportspassword
     containerPort: 27017
