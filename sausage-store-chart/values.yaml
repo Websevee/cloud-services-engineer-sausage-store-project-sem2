@@ -99,7 +99,7 @@ backend-report:
   replicas: 1
   strategy:
     type: Recreate
-  image: websevee/backend-report:latest
+  image: websevee/sausage-backend-report:latest
   imagePullPolicy: Always
   resources:
     requests:
