@@ -55,6 +55,40 @@ spec:
     app: mongodb
   clusterIP: None
 ---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: mongodb-init
+  annotations:
+    helm.sh/hook: "post-install"
+    helm.sh/hook-weight: "5"
+spec:
+  template:
+    spec:
+      containers:
+      - name: mongodb-init
+        image: mongo:7.0
+        envFrom:
+          - configMapRef:
+              name: mongodb-conf
+        command:
+        - /bin/sh
+        - -c
+        - |
+          until mongosh --host mongodb; do
+            sleep 2
+          done
+          mongosh --host mongodb --username ${MONGO_INITDB_ROOT_USERNAME} --password ${MONGO_INITDB_ROOT_PASSWORD} --authenticationDatabase admin --eval "
+            db = db.getSiblingDB('${MONGO_REPORTS_DATABASE}');
+            db.createUser({
+              user: '${MONGO_REPORTS_USERNAME}',
+              pwd: '${MONGO_REPORTS_PASSWORD}',
+              roles: [{ role: 'readWrite', db: '${MONGO_REPORTS_DATABASE}' }]
+            });
+          "
+      restartPolicy: OnFailure
+  backoffLimit: 4
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
