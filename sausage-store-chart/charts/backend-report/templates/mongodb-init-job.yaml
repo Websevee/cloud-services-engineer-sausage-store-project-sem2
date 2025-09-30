@@ -31,11 +31,11 @@ spec:
                   name: "{{ .Release.Name }}-mongodb"
                   key: mongodb-root-password
             - name: MONGO_REPORTS_USERNAME
-              value: "reports"
+              value: "{{ .Values.env.MONGO_REPORTS_USERNAME }}"
             - name: MONGO_REPORTS_PASSWORD
-              value: "reportpassword"
+              value: "{{ .Values.env.MONGO_REPORTS_PASSWORD }}"
             - name: MONGO_REPORTS_DATABASE
-              value: "reportdb"
+              value: "{{ .Values.env.MONGO_REPORTS_DATABASE }}"
           command:
             - /bin/sh
             - -c
