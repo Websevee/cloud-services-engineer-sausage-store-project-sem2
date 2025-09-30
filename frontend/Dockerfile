@@ -15,5 +15,5 @@ RUN npm run build
 
 # 2. Runner
 FROM nginx:1.29.1-alpine
-COPY --from=builder /usr/src/app/dist/frontend/* /usr/share/nginx/html/
+COPY --from=builder /app/dist/frontend/* /usr/share/nginx/html/
 EXPOSE 80
