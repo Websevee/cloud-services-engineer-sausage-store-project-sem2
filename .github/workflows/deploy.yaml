@@ -85,10 +85,12 @@ jobs:
         run: helm repo add nexus $NEXUS_HELM_REPO --username $NEXUS_HELM_REPO_USER --password $NEXUS_HELM_REPO_PASSWORD
 
       - name: Helm package chart
-        run: helm package sausage-store
+        run: |
+          helm dependency update ./sausage-store-chart
+          helm package ./sausage-store-chart
 
       - name: Helm push chart to Nexus
-        run: helm cm-push sausage-store-*.tgz nexus
+        run: helm cm-push ./sausage-store-*.tgz nexus
 
   # Деплоим приложения в кластер Kubernetes с помощью helm-чарт
   deploy_helm_chart_to_kubernetes:
