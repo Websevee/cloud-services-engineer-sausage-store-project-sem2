@@ -153,7 +153,8 @@ jobs:
       - name: Configure Kubernetes context
         run: |
           mkdir -p ~/.kube
-          echo "$KUBE_CONFIG" | base64 --decode > ~/.kube/config
+          echo "${KUBE_CONFIG}" | base64 -d > ~/.kube/config
+          chmod 600 ~/.kube/config
 
       - name: Deploy Helm chart
         run: helm upgrade --install sausage-store nexus/sausage-store --namespace ${{ env.SAUSAGE_STORE_NAMESPACE }} --create-namespace
