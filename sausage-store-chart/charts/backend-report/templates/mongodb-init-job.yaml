@@ -2,59 +2,35 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ .Release.Name }}-{{ .Chart.Name }}-mongodb-init
+  name: "{{ .Release.Name }}-{{ .Chart.Name }}-mongodb-init"
   annotations:
     helm.sh/hook: "post-install"
     helm.sh/hook-weight: 5
 spec:
   template:
     metadata:
-      name: {{ .Release.Name }}-{{ .Chart.Name }}-mongodb-init
+      name: "{{ .Release.Name }}-{{ .Chart.Name }}-mongodb-init"
     spec:
       restartPolicy: OnFailure
       containers:
         - name: mongodb-init
-          image: mongo:latest
-          env:
-            - name: MONGO_HOST
-              value: "mongodb"
-            - name: MONGO_PORT
-              value: "27017"
-            - name: MONGO_ROOT_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: "{{ .Release.Name }}-mongodb"
-                  key: mongodb-root-username
-            - name: MONGO_ROOT_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: "{{ .Release.Name }}-mongodb"
-                  key: mongodb-root-password
-            - name: MONGO_REPORTS_USERNAME
-              value: "{{ .Values.env.MONGO_REPORTS_USERNAME }}"
-            - name: MONGO_REPORTS_PASSWORD
-              value: "{{ .Values.env.MONGO_REPORTS_PASSWORD }}"
-            - name: MONGO_REPORTS_DATABASE
-              value: "{{ .Values.env.MONGO_REPORTS_DATABASE }}"
+          image: mongo:7.0
+          envFrom:
+            - configMapRef:
+                name: mongodb-conf
           command:
             - /bin/sh
             - -c
             - |
-              echo "Waiting for MongoDB to be ready..."
-              until mongosh --host $MONGO_HOST:$MONGO_PORT --username $MONGO_ROOT_USERNAME --password $MONGO_ROOT_PASSWORD --eval 'db.runCommand({ connectionStatus: 1 })' &>/dev/null; do
+              until mongosh --host mongodb; do
                 sleep 2
               done
-              echo "MongoDB is ready. Creating user and database..."
-              
-              mongosh --host $MONGO_HOST:$MONGO_PORT --username $MONGO_ROOT_USERNAME --password $MONGO_ROOT_PASSWORD <<EOF
-              use $MONGO_REPORTS_DATABASE
-              db.createUser({
-                user: "$MONGO_REPORTS_USERNAME",
-                pwd: "$MONGO_REPORTS_PASSWORD",
-                roles: [
-                  { role: "readWrite", db: "$MONGO_REPORTS_DATABASE" }
-                ]
-              })
-              EOF
-              
-              echo "User and database created successfully"
+              mongosh --host mongodb --username ${MONGO_INITDB_ROOT_USERNAME} --password ${MONGO_INITDB_ROOT_PASSWORD} --authenticationDatabase admin --eval "
+                db = db.getSiblingDB('${MONGO_REPORTS_DATABASE}');
+                db.createUser({
+                  user: '${MONGO_REPORTS_USERNAME}',
+                  pwd: '${MONGO_REPORTS_PASSWORD}',
+                  roles: [{ role: 'readWrite', db: '${MONGO_REPORTS_DATABASE}' }]
+                });
+              "
+  backoffLimit: 4
