@@ -78,19 +78,52 @@ jobs:
         with:
           version: v3.10.0
 
+      - name: Install helm-cm-push plugin
+        run: helm plugin install https://github.com/chartmuseum/helm-push
+
       - name: Add Nexus Helm repository
-        run: helm repo add nexus-repo $NEXUS_HELM_REPO --username $NEXUS_HELM_REPO_USER --password $NEXUS_HELM_REPO_PASSWORD
+        run: helm repo add nexus $NEXUS_HELM_REPO --username $NEXUS_HELM_REPO_USER --password $NEXUS_HELM_REPO_PASSWORD
 
       - name: Helm package chart
         run: helm package sausage-store-chart
 
       - name: Helm push chart to Nexus
-        run: helm cm-push sausage-store-chart-*.tgz nexus-repo
-  # # Деплоим приложения в кластер Kubernetes с помощью helm-чарт
-  # deploy_helm_chart_to_kubernetes:
-  #     name: Deploy Helm Chart To Kubernetes
-  #     runs-on: ubuntu-latest
-  #     needs: add_helm_chart_to_nexus
+        run: helm cm-push sausage-store-chart-*.tgz nexus
 
-  #     steps:
-  #     #### Опишите необходимые шаги
+  # Деплоим приложения в кластер Kubernetes с помощью helm-чарт
+  deploy_helm_chart_to_kubernetes:
+    name: Deploy Helm Chart To Kubernetes
+    runs-on: ubuntu-latest
+    needs: add_helm_chart_to_nexus
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v3
+        with:
+          version: v3.10.0
+
+      - name: Install helm-cm-push plugin
+        run: |
+          helm plugin install https://github.com/chartmuseum/helm-push
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: "v1.24.0"
+
+      - name: Add Nexus Helm repository
+        run: |
+          helm repo add nexus $NEXUS_HELM_REPO --username $NEXUS_HELM_REPO_USER --password $NEXUS_HELM_REPO_PASSWORD
+          helm repo update
+
+      - name: Configure Kubernetes context
+        run: |
+          mkdir -p ~/.kube
+          echo "$KUBE_CONFIG" > ~/.kube/config
+
+      - name: Deploy Helm chart
+        run: |
+          helm upgrade --install sausage-store nexus/sausage-store-chart --namespace sausage-store --create-namespace
