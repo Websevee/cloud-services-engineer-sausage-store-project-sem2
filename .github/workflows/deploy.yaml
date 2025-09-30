@@ -100,7 +100,7 @@ jobs:
         run: |
           # Update main chart version
           sed -i "s/version: .*/version: ${{ env.VERSION }}/g" sausage-store-chart/Chart.yaml
-          
+
           # Update dependency versions
           sed -i "s/    version: .*/    version: ${{ env.VERSION }}/g" sausage-store-chart/Chart.yaml
 
@@ -153,10 +153,10 @@ jobs:
       - name: Configure Kubernetes context
         run: |
           mkdir -p ~/.kube
-          echo "${KUBE_CONFIG}" > ~/.kube/config
+          echo "${KUBE_CONFIG}" | base64 --decode > ~/.kube/config
           chmod 600 ~/.kube/config
 
       - name: Deploy Helm chart
         run: |
           helm upgrade --install sausage-store nexus/sausage-store \
-            --namespace ${{ env.SAUSAGE_STORE_NAMESPACE }} 
+            --namespace ${{ env.SAUSAGE_STORE_NAMESPACE }}
