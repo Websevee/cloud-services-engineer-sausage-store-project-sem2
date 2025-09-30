@@ -4,7 +4,6 @@ metadata:
   name: mongodb
   annotations:
     helm.sh/hook-weight: "-5"
-    helm.sh/hook-delete-policy: "before-hook-creation"
 spec:
   serviceName: mongodb
   replicas: 1
@@ -64,7 +63,6 @@ metadata:
   annotations:
     helm.sh/hook: "post-install"
     helm.sh/hook-weight: "5"
-    helm.sh/hook-delete-policy: "before-hook-creation"
 spec:
   template:
     spec:
@@ -78,17 +76,9 @@ spec:
         - /bin/sh
         - -c
         - |
-          echo "Waiting for MongoDB to be ready..."
-          for i in $(seq 1 30); do
-            if mongosh --host mongodb --quiet --eval "db.runCommand({ ping: 1 })" > /dev/null 2>&1; then
-              echo "MongoDB is ready"
-              break
-            fi
-            echo "Waiting for MongoDB... ($i/30)"
+          until mongosh --host mongodb; do
             sleep 2
           done
-          
-          echo "Creating user and database..."
           mongosh --host mongodb --username ${MONGO_INITDB_ROOT_USERNAME} --password ${MONGO_INITDB_ROOT_PASSWORD} --authenticationDatabase admin --eval "
             db = db.getSiblingDB('${MONGO_REPORTS_DATABASE}');
             db.createUser({
@@ -96,7 +86,7 @@ spec:
               pwd: '${MONGO_REPORTS_PASSWORD}',
               roles: [{ role: 'readWrite', db: '${MONGO_REPORTS_DATABASE}' }]
             });
-          " && echo "User and database created successfully"
+          "
       restartPolicy: OnFailure
   backoffLimit: 4
 ---
@@ -106,7 +96,6 @@ metadata:
   name: mongodb-conf
   annotations:
     helm.sh/hook-weight: "-50"
-    helm.sh/hook-delete-policy: "before-hook-creation"
 data:
   MONGO_INITDB_ROOT_USERNAME: {{ .Values.mongodb.env.MONGO_INITDB_ROOT_USERNAME }}
   MONGO_INITDB_ROOT_PASSWORD: {{ .Values.mongodb.env.MONGO_INITDB_ROOT_PASSWORD }}

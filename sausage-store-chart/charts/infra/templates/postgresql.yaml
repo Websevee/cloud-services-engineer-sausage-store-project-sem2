@@ -5,7 +5,6 @@ metadata:
   name: postgresql
   annotations:
     helm.sh/hook-weight: "-5"
-    helm.sh/hook-delete-policy: "before-hook-creation"
 spec:
   serviceName: postgresql
   replicas: 1
@@ -31,9 +30,9 @@ spec:
           resources:
             requests:
               memory: "128Mi"
-              cpu: "10m"
+              cpu: "50m"
             limits:
-              cpu: "100m"
+              cpu: "500m"
               memory: "256Mi"
           volumeMounts:
             - name: postgresql-data
@@ -61,51 +60,10 @@ spec:
     app: postgresql
   clusterIP: None
 ---
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: postgresql-init
-  annotations:
-    helm.sh/hook: "post-install"
-    helm.sh/hook-weight: "5"
-    helm.sh/hook-delete-policy: "before-hook-creation"
-spec:
-  template:
-    spec:
-      containers:
-      - name: postgresql-init
-        image: postgres:15
-        envFrom:
-          - configMapRef:
-              name: postgresql-conf
-        env:
-          - name: PGPASSWORD
-            value: {{ .Values.postgresql.env.POSTGRES_PASSWORD }}
-        command:
-        - /bin/sh
-        - -c
-        - |
-          echo "Waiting for PostgreSQL to be ready..."
-          for i in $(seq 1 30); do
-            if pg_isready -h postgresql -U {{ .Values.postgresql.env.POSTGRES_USER }} > /dev/null 2>&1; then
-              echo "PostgreSQL is ready"
-              break
-            fi
-            echo "Waiting for PostgreSQL... ($i/30)"
-            sleep 2
-          done
-          
-          echo "PostgreSQL is ready, no additional initialization needed"
-      restartPolicy: OnFailure
-  backoffLimit: 4
----
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: postgresql-conf
-  annotations:
-    helm.sh/hook-weight: "-50"
-    helm.sh/hook-delete-policy: "before-hook-creation"
 data:
   POSTGRES_USER: {{ .Values.postgresql.env.POSTGRES_USER }}
   POSTGRES_PASSWORD: {{ .Values.postgresql.env.POSTGRES_PASSWORD }}
