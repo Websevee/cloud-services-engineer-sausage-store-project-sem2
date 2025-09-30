@@ -15,7 +15,7 @@ frontend:
   service:
     port: 80
   ingress:
-    host: YOUR_STUDENT_HOSTNAME.students-projects.ru # Корректный домен будет указан в задании
+    host: fornt-websevee.2sem.students-projects.ru # Корректный домен будет указан в задании
     path: /
     pathType: Prefix
   containerPort: 80
@@ -46,7 +46,11 @@ backend:
   replicas: 1
   strategy:
   ### Опишите стратегию RollingUpdate для бэкенда
-  image: YOUR_DOCKERHUB/sausage-backend:latest
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  image: websevee/sausage-backend:latest
   imagePullPolicy: Always
   resources:
     requests:
@@ -58,8 +62,26 @@ backend:
   containerPort: 8080
   livenessProbe:
   ### Опишите LivenessProbe для бэкенда
+    httpGet:
+      path: /actuator/health
+      port: 8080
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
   vpa:
   ### Опишите VPA для бэкенда
+    updatePolicy:
+      updateMode: "Auto"
+    resourcePolicy:
+      containerPolicies:
+        - containerName: "backend"
+          minAllowed:
+            memory: "256Mi"
+            cpu: "100m"            
+          maxAllowed:
+            memory: "512Mi"
+            cpu: "1"
 
 backend-report:
 ### Опишите значения для backend-report
@@ -67,10 +89,51 @@ backend-report:
 ### Приложение использует переменную PORT - порт, на котором оно запустится и DB - Uri-подключение к mongodb. 
 ### DB положите в Secret, PORT в ConfigMap
 ### Опишите HPA для backend-report
+  env:
+    port: 8080
+    db: "mongodb://root:rootpassword@mongodb:27017"
+  service:
+    port: 8080
+  revisionHistoryLimit: 15
+  replicas: 1
+  strategy:
+    type: Recreate
+  image: websevee/backend-report:latest
+  imagePullPolicy: Always
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "0.1"
+    limits:
+      memory: "256Mi"
+      cpu: "0.5"
+  containerPort: 8080
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: 8080
+    initialDelaySeconds: 60
+    periodSeconds: 30
+    timeoutSeconds: 10
+    failureThreshold: 3
+  hpa:
+    minReplicas: 1
+    maxReplicas: 5
+    metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
 
 infra:
   postgresql:
-  ### Опишите необходимые переменные для развертывания PostgresQL в кластере Kubernetes
+    env:
+      POSTGRES_DB: sausage-store
+      POSTGRES_USER: store
+      POSTGRES_PASSWORD: storepassword
+    containerPort: 5432
   mongodb:
     env:
       MONGO_INITDB_ROOT_USERNAME: root
