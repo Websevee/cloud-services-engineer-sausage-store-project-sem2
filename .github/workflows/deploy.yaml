@@ -82,7 +82,9 @@ jobs:
         run: helm plugin install https://github.com/chartmuseum/helm-push
 
       - name: Add Nexus Helm repository
-        run: helm repo add nexus $NEXUS_HELM_REPO --username $NEXUS_HELM_REPO_USER --password $NEXUS_HELM_REPO_PASSWORD
+        run: |
+          helm repo add nexus $NEXUS_HELM_REPO --username $NEXUS_HELM_REPO_USER --password $NEXUS_HELM_REPO_PASSWORD
+          helm repo update
 
       - name: Helm package chart
         run: |
@@ -111,8 +113,7 @@ jobs:
           version: v3.10.0
 
       - name: Install helm-cm-push plugin
-        run: |
-          helm plugin install https://github.com/chartmuseum/helm-push
+        run: helm plugin install https://github.com/chartmuseum/helm-push
 
       - name: Set up kubectl
         uses: azure/setup-kubectl@v3
