@@ -18,8 +18,9 @@ frontend:
     host: fornt-websevee.2sem.students-projects.ru # Корректный домен будет указан в задании
     path: /
     pathType: Prefix
+    tlsSecretName: 2sem-students-projects-wildcard-secret
   containerPort: 80
-  image: YOUR_DOCKERHUB/sausage-frontend:latest
+  image: websevee/sausage-frontend:latest
   resources:
     requests:
       memory: "128Mi"
