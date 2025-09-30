@@ -14,22 +14,27 @@ spec:
       containers:
         - name: mongodb-init
           image: mongo:7.0
-          envFrom:
-            - configMapRef:
-                name: mongodb-conf
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: "{{ .Values.env.MONGO_REPORTS_USERNAME }}"
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              value: "{{ .Values.env.MONGO_REPORTS_PASSWORD }}"
+            - name: MONGO_REPORTS_DATABASE
+              value: "{{ .Values.env.MONGO_REPORTS_DATABASE }}"
+            - name: MONGO_REPORTS_USERNAME
+              value: "{{ .Values.env.MONGO_REPORTS_USERNAME }}"
+            - name: MONGO_REPORTS_PASSWORD
+              value: "{{ .Values.env.MONGO_REPORTS_PASSWORD }}"
           command:
             - /bin/sh
             - -c
             - |
-              until mongosh --host mongodb; do
-                sleep 2
-              done
-              mongosh --host mongodb --username ${MONGO_INITDB_ROOT_USERNAME} --password ${MONGO_INITDB_ROOT_PASSWORD} --authenticationDatabase admin --eval "
-                db = db.getSiblingDB('${MONGO_REPORTS_DATABASE}');
+              mongosh --host mongodb --username $MONGO_INITDB_ROOT_USERNAME --password $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval "
+                db = db.getSiblingDB('$MONGO_REPORTS_DATABASE');
                 db.createUser({
-                  user: '${MONGO_REPORTS_USERNAME}',
-                  pwd: '${MONGO_REPORTS_PASSWORD}',
-                  roles: [{ role: 'readWrite', db: '${MONGO_REPORTS_DATABASE}' }]
+                  user: '$MONGO_REPORTS_USERNAME',
+                  pwd: '$MONGO_REPORTS_PASSWORD',
+                  roles: [{ role: 'readWrite', db: '$MONGO_REPORTS_DATABASE' }]
                 });
               "
   backoffLimit: 4
